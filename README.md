@@ -14,17 +14,15 @@ Sigue estos simples pasos para levantar el entorno de desarrollo:
    python -m venv venv
    ```
 
-````
-
 2. **Activar el entorno virtual**
 
-   * En **Windows**:
+   - En **Windows**:
 
      ```bash
      venv\Scripts\activate
      ```
 
-   * En **macOS/Linux**:
+   - En **macOS/Linux**:
 
      ```bash
      source venv/bin/activate
@@ -46,13 +44,13 @@ Sigue estos simples pasos para levantar el entorno de desarrollo:
 
 ## 📝 Notas adicionales
 
-* Para desactivar el entorno:
+- Para desactivar el entorno:
 
   ```bash
   deactivate
   ```
 
-* Si necesitas actualizar los paquetes:
+- Si necesitas actualizar los paquetes:
 
   ```bash
   pip freeze > requirements.txt
@@ -62,5 +60,6 @@ Sigue estos simples pasos para levantar el entorno de desarrollo:
 
 ¡Feliz codificación! 🚀
 
+```
 
-````
+```
