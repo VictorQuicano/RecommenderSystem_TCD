@@ -43,3 +43,9 @@ if __name__ == "__main__":
     usuario_b = 'Heather'
     coeficiente = similitud_pearson(df_peliculas[usuario_a], df_peliculas[usuario_b])
     print(f"Coeficiente de Pearson entre {usuario_a} y {usuario_b}: {coeficiente:.3f}")
+    
+    
+    # Convertir coeficiente en distancia:
+    distancia_basada_en_pearson = 1 - coeficiente
+    print(f"Distancia basada en Pearson entre {usuario_a} y {usuario_b}: {distancia_basada_en_pearson:.3f}")
+

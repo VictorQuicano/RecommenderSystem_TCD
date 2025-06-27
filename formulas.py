@@ -1,4 +1,6 @@
 import math
+import numpy as np
+
 
 def euclidean_distance(a, b):
     """Distancia Euclidiana"""
@@ -30,40 +32,45 @@ def manhattan_distance(a, b):
         return float('nan')
     return distance
 
-def pearson_distance(a, b):
-    """Distancia Pearson (1 - correlación)"""
-    valid_a = []
-    valid_b = []
+def pearson_distance(serie_usuario_a, serie_usuario_b):
+    #calificadas por ambos usuarios
+    peliculas_comunes = serie_usuario_a.notna() & serie_usuario_b.notna()
     
-    for ai, bi in zip(a, b):
-        if ai is None or math.isnan(ai) or bi is None or math.isnan(bi):
-            continue
-        valid_a.append(ai)
-        valid_b.append(bi)
+    #vectores de ratings emparejados
+    calificaciones_usuario_a = serie_usuario_a[peliculas_comunes].values
+    calificaciones_usuario_b = serie_usuario_b[peliculas_comunes].values
     
-    n = len(valid_a)
-    if n < 2:
-        return float('nan')
+    #Revisar si hay suficientes datos
+    if len(calificaciones_usuario_a) < 2:
+        return 0.0
     
-    mean_a = sum(valid_a) / n
-    mean_b = sum(valid_b) / n
+    #Medias de cada usuario
+    media_usuario_a = np.mean(calificaciones_usuario_a)
+    media_usuario_b = np.mean(calificaciones_usuario_b)
     
-    covariance = 0.0
-    var_a = 0.0
-    var_b = 0.0
+    #Numerador: covarianza empírica
+    numerador_covarianza = np.sum(
+        (calificaciones_usuario_a - media_usuario_a) *
+        (calificaciones_usuario_b - media_usuario_b)
+    )
     
-    for ai, bi in zip(valid_a, valid_b):
-        diff_a = ai - mean_a
-        diff_b = bi - mean_b
-        covariance += diff_a * diff_b
-        var_a += diff_a ** 2
-        var_b += diff_b ** 2
+    #Denominador: producto de desviaciones estándar
+    desviacion_usuario_a = np.sqrt(np.sum((calificaciones_usuario_a - media_usuario_a) ** 2))
+    desviacion_usuario_b = np.sqrt(np.sum((calificaciones_usuario_b - media_usuario_b) ** 2))
+    producto_desviaciones = desviacion_usuario_a * desviacion_usuario_b
     
-    if var_a == 0 or var_b == 0:
-        return float('nan')
+    if producto_desviaciones == 0:
+        return 0.0
     
-    correlation = covariance / math.sqrt(var_a * var_b)
-    return 1 - correlation
+    #Coeficiente de Pearson
+    
+    coeficiente=numerador_covarianza / producto_desviaciones
+    # Convertir coeficiente en distancia:
+    distancia_basada_en_pearson = 1 - coeficiente
+    return distancia_basada_en_pearson
+
+
+
 
 def cosine_distance(a, b):
     """Distancia Coseno (1 - similitud coseno)"""
