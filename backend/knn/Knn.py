@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+import numpy as np
 
 from distances.euclidean_distance import euclidean_distance
 from distances.manhattan_formulas import manhattan_distance
@@ -52,20 +53,74 @@ class KNNCalcularDistancia:
             for name, dist in knn.items()
             if not math.isinf(dist)
         ]
+    
+    def recommend(self, df: pd.DataFrame, target_column:str, neighbor:int=5, umbral:float=3.5)->list[dict]:
+        # Paso 1: obtener KNN
+        knn_df = self.get_knn(df, target_column, neighbor)
 
+        neighbor_cols = [d['neighbor'] for d in knn_df]
 
-def find_knn_for_column(df: pd.DataFrame, target_column: str, distance_type='euclidean', k=5) -> list[dict]:
-    distance_functions = {
-        'euclidean': euclidean_distance,
-        'manhattan': manhattan_distance,
-        'pearson': similitud_pearson,
-        'cosine': cosine_similarity
-    }
+        # Paso 2: identificar los índices donde el usuario no ha calificado (NaN)
+        indices_nan = df[df[target_column].isna()].index
 
+        recommendations = []
+
+        for idx in indices_nan:
+        # Calificaciones de neighbor en ese ítem
+            neighbor_values = df.loc[idx, neighbor_cols]
+            neighbor_values = neighbor_values.dropna()  # quitar NaNs
+
+            if neighbor_values.empty:
+                continue  # ningún neighbor calificó esta película
+
+            promedio = neighbor_values.mean()
+
+            if promedio >= umbral:
+                # Construimos el dict del formato requerido
+                recomendacion = {
+                    'movie': idx,
+                    'score': round(promedio, 3),
+                    'neighbor': sorted(
+                        [
+                            {'name': neighbor, 'score': round(df.loc[idx, neighbor], 3)}
+                            for neighbor in neighbor_values.index
+                        ],
+                        key=lambda x: x['score'],
+                        reverse=True
+                    )
+                }
+                recommendations.append(recomendacion)
+
+        # Ordenar recommendations por score descendente
+        recommendations.sort(key=lambda x: x['score'], reverse=True)
+        return recommendations
+
+distance_functions = {
+    'euclidean': euclidean_distance,
+    'manhattan': manhattan_distance,
+    'pearson': similitud_pearson,
+    'cosine': cosine_similarity
+}
+
+def validateFunction(distance_type:str = 'euclidian'):
     if distance_type not in distance_functions:
         raise ValueError(f"Tipo de distancia no válido. Opciones: {list(distance_functions.keys())}")
 
-    df = df.apply(pd.to_numeric, errors='coerce')  # Convierte todo a numérico
+def find_knn_for_column(df: pd.DataFrame, target_column: str, distance_type='euclidean', k=5) -> list[dict]:
+
+    validateFunction(distance_type)
+
+    #df = df.apply(pd.to_numeric, errors='coerce')  # Convierte todo a numérico
 
     knn_calculator = KNNCalcularDistancia(distance_functions[distance_type])
     return knn_calculator.get_knn(df, target_column, k)
+
+def recommend_for_column(df: pd.DataFrame, target_column:str, neighbor:int=5,distance_type='euclidean', umbral:float=3.5) -> list[dict]:
+
+    validateFunction(distance_type)
+
+    df = df.apply(pd.to_numeric, errors='coerce')  # Convierte todo a numérico
+    print(df)
+
+    knn_calculator = KNNCalcularDistancia(distance_functions[distance_type])
+    return knn_calculator.recommend(df,target_column,neighbor, umbral)

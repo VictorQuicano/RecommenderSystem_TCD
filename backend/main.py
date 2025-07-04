@@ -24,8 +24,7 @@ app.add_middleware(
 import numpy as np  # ⬅️ Asegúrate de importar esto
 # Carga los datasets al iniciar
 def load_clean_csv(path):
-    df = pd.read_csv(path, index_col=False)
-    
+    df = pd.read_csv(path, index_col=0)
     # Si la primera columna no tiene nombre, asígnale uno
     if df.columns[0].startswith("Unnamed") or df.columns[0] == "":
         df.rename(columns={df.columns[0]: "movie"}, inplace=True)
@@ -162,4 +161,26 @@ async def knn_neighbors(
 
     except Exception as e:
         print("❌ Error en /knn:", e)
+        return JSONResponse(status_code=500, content={"error": "Error interno"})
+    
+@app.get("/recommender")
+async def recommender(
+    user: str = Query(...),
+    k: int = Query(...),
+    dataset: str = Query("Movie_Ratings.csv"),
+    distance: str = Query("euclidean"),
+    umbral: float = Query(...)
+):
+    try:
+        df = dataframes.get(dataset)
+
+        if df is None or user not in df.columns:
+            return JSONResponse(status_code=400, content={"error": "Datos inválidos"})
+        
+        recommendations = recommend_for_column(df, user, k,distance,umbral)
+        return recommendations 
+        
+
+    except Exception as e:
+        print("❌ Error en /recommender:", e)
         return JSONResponse(status_code=500, content={"error": "Error interno"})
