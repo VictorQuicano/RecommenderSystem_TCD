@@ -5,6 +5,7 @@ import { fetchNames } from "./services/fetch_names";
 import { UserSelectorPair } from "./components/UserSelector";
 import { useGlobalStore } from "./store/store";
 import { KNNRunner } from "./components/KnnRunner";
+import { MatrixTable } from "./components/MatrixChart";
 
 function App() {
   const datasetName = useGlobalStore((state) => state.dataset);
@@ -19,6 +20,7 @@ function App() {
       <DistanceSelector />
       <UserSelectorPair />
       <KNNRunner />
+      <MatrixTable />
     </div>
   );
 }

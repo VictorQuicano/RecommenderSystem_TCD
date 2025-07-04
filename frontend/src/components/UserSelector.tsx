@@ -23,6 +23,7 @@ export function UserSelectorPair() {
       if (user1 && user2 && user1 !== user2) {
         console.log(`🔍 Comparando "${user1}" y "${user2}" usando "${distanceType}"`);
         const res = await fetchDistance(user1, user2, distanceType);
+        console.log(res)
         setResult(res);
       }
     };
@@ -63,7 +64,7 @@ export function UserSelectorPair() {
       </div>
 
       {result !== null && (
-        <div className="mt-4 text-green-600 font-medium">
+        <div className="mt- font-medium">
           ✅ Distancia entre <strong>{user1}</strong> y <strong>{user2}</strong>: {result}
         </div>
       )}

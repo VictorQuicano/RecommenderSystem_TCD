@@ -1,16 +1,18 @@
-type KNNResult = {
-  neighbor: string;
-  distance: number;
-};
+import { useGlobalStore } from "@/store/store"; // ajusta la ruta según tu estructura
 
-export async function fetchKNN(user: string, k: number): Promise<KNNResult[]> {
+export async function fetchKNN(user: string, k: number): Promise<any[]> {
+  const { dataset, distance } = useGlobalStore.getState(); // obtenemos directamente los valores
+
   try {
     const response = await fetch(
-      `http://localhost:5000/knn?user=${encodeURIComponent(user)}&k=${k}`
+      `http://localhost:5000/knn?user=${encodeURIComponent(user)}&k=${k}&dataset=${encodeURIComponent(
+        dataset
+      )}&distance=${encodeURIComponent(distance)}`
     );
+
     const data = await response.json();
 
-    // Validamos que cada entrada tenga el formato correcto
+    // Validamos el formato
     if (
       Array.isArray(data) &&
       data.every(
@@ -24,7 +26,6 @@ export async function fetchKNN(user: string, k: number): Promise<KNNResult[]> {
     }
   } catch (err) {
     console.warn("⚠️ Error en fetchKNN, devolviendo mock:", err);
-    // Retorno simulado
     return [
       { neighbor: "Heather", distance: 2.3 },
       { neighbor: "Bryan", distance: 4.1 },

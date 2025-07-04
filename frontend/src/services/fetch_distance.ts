@@ -2,13 +2,7 @@ export async function fetchDistance(user1: string, user2: string, distance: stri
   try {
     const response = await fetch(`http://localhost:5000/compare?u1=${user1}&u2=${user2}&metric=${distance}`);
     const data = await response.json();
-
-    // Suponemos que la API devuelve algo como { distance: number }
-    if (typeof data.distance === "number") {
-      return data.distance;
-    } else {
-      throw new Error("Formato de respuesta inválido");
-    }
+    return data
   } catch (error) {
     console.warn("❌ Error al llamar a fetchDistance, devolviendo valor aleatorio:", error);
     return Math.floor(Math.random() * 10) + 1;

@@ -66,7 +66,7 @@ export function KNNRunner() {
             {results.map((r, i) => (
               <li key={i}>
                 Vecino: <strong>{r.neighbor}</strong> — Distancia:{" "}
-                <span className="text-blue-600">{r.distance.toFixed(2)}</span>
+                <span className="text-blue-600">{r.distance.toFixed(4)}</span>
               </li>
             ))}
           </ul>
