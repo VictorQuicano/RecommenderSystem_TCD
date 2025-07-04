@@ -41,7 +41,7 @@ export function RecommenderPanel() {
   }
 
   return (
-    <Card className="w-full font-sans shadow-md rounded-2xl">
+    <Card className="w-full font-sans shadow-md rounded-2xl max-w-full max-h-full">
       <CardHeader>
         <CardTitle className="text-xl">🎬 Recomendador de Películas</CardTitle>
       </CardHeader>
@@ -85,7 +85,7 @@ export function RecommenderPanel() {
           {recommendations.length > 0 && (
             <div>
               <Label className="text-lg font-medium">Películas recomendadas:</Label>
-              <ScrollArea className="max-h-[35em] pr-2 overflow-auto">
+              <div className="max-h-[37em] max-w-[67em] pr-2 overflow-auto">
                 <div className="space-y-4">
                   {recommendations.map((rec, idx) => {
                     const headers = rec.neighbor.map((n) => n.name);
@@ -128,7 +128,7 @@ export function RecommenderPanel() {
                     );
                   })}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           )}
         </div>
