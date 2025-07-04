@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Select,
   SelectTrigger,
@@ -5,69 +7,65 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useGlobalStore } from "@/store/store";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { fetchDistance } from "@/services/fetch_distance";
+import { UserCombobox } from "./UserComobox";
 
 export function UserSelectorPair() {
   const users = useGlobalStore((state) => state.users);
   const distanceType = useGlobalStore((state) => state.distance);
-  const datasetName = useGlobalStore((state) => state.dataset);
 
   const [user1, setUser1] = useState<string>("");
   const [user2, setUser2] = useState<string>("");
   const [result, setResult] = useState<number | null>(null);
 
-  useEffect(() => {
-    const runComparison = async () => {
-      if (user1 && user2 && user1 !== user2) {
-        console.log(`🔍 Comparando "${user1}" y "${user2}" usando "${distanceType}"`);
-        const res = await fetchDistance(user1, user2, distanceType);
-        console.log(res)
-        setResult(res);
-      }
-    };
-
-    runComparison();
-  }, [user1, user2, distanceType]);
+  const handleCalculate = async () => {
+    if (user1 && user2 && user1 !== user2) {
+      const res = await fetchDistance(user1, user2, distanceType);
+      setResult(res);
+    }
+  };
 
   return (
-    <div className="space-y-4 mt-6">
-      <h2 className="text-lg font-semibold">Calcular Distancia entre Usuarios</h2>
+    <Card className="w-1/4 mx-auto font-sans shadow-md rounded-2xl">
+      <CardHeader>
+        <CardTitle className="text-xl">📏 Distancia entre Usuarios</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-3">
+          <UserCombobox
+            users={users}
+            selectedUser={user1}
+            onChange={setUser1}
+            label="Usuario 1"
+          />
 
-      <div className="flex gap-4 max-w-md">
-        <Select value={user1} onValueChange={setUser1}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Usuario 1" />
-          </SelectTrigger>
-          <SelectContent>
-            {users.map((name, idx) => (
-              <SelectItem key={idx} value={name}>
-                {name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <UserCombobox
+            users={users}
+            selectedUser={user2}
+            onChange={setUser2}
+            label="Usuario 2"
+          />
 
-        <Select value={user2} onValueChange={setUser2}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Usuario 2" />
-          </SelectTrigger>
-          <SelectContent>
-            {users.map((name, idx) => (
-              <SelectItem key={idx} value={name}>
-                {name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {result !== null && (
-        <div className="mt- font-medium">
-          ✅ Distancia entre <strong>{user1}</strong> y <strong>{user2}</strong>: {result}
+          <Button
+            onClick={handleCalculate}
+            disabled={!user1 || !user2 || user1 === user2}
+            className="w-full"
+          >
+            Calcular distancia
+          </Button>
         </div>
-      )}
-    </div>
+
+        {result !== null && (
+          <div className="mt-2 text-base">
+            ✅ Distancia entre <strong>{user1}</strong> y <strong>{user2}</strong>:{" "}
+            <span className="font-semibold text-blue-600">{result.toFixed(4)}</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

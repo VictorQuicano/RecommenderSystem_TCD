@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Select,
   SelectTrigger,
@@ -6,9 +8,13 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGlobalStore } from "@/store/store";
 import { fetchKNN } from "@/services/fetch_knn";
 import { useState } from "react";
+import { UserCombobox } from "./UserComobox";
 
 export function KNNRunner() {
   const users = useGlobalStore((state) => state.users);
@@ -23,55 +29,66 @@ export function KNNRunner() {
   };
 
   return (
-    <div className="mt-8 space-y-4 max-w-md">
-      <h2 className="text-lg font-semibold">Ejecutar KNN</h2>
-
-      {/* Select de usuario */}
-      <Select value={selectedUser} onValueChange={setSelectedUser}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Selecciona un usuario" />
-        </SelectTrigger>
-        <SelectContent>
-          {users.map((u, idx) => (
-            <SelectItem key={idx} value={u}>
-              {u}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Input numérico para k */}
-      <Input
-        type="number"
-        min={1}
-        max={users.length - 1}
-        value={k}
-        onChange={(e) => setK(Number(e.target.value))}
-        placeholder="Número de vecinos"
-      />
-
-      {/* Botón para ejecutar */}
-      <button
-        onClick={handleRunKNN}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-      >
-        Ejecutar KNN
-      </button>
-
-      {/* Resultados */}
-      {results.length > 0 && (
-        <div className="mt-4 space-y-2">
-          <h3 className="font-medium">Resultados:</h3>
-          <ul className="list-disc pl-6">
-            {results.map((r, i) => (
-              <li key={i}>
-                Vecino: <strong>{r.neighbor}</strong> — Distancia:{" "}
-                <span className="text-blue-600">{r.distance.toFixed(4)}</span>
-              </li>
-            ))}
-          </ul>
+    <Card className="w-1/4 mx-auto font-sans shadow-md rounded-2xl">
+      <CardHeader>
+        <CardTitle className="text-xl">🔍 Ejecutar KNN</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Select de usuario */}
+        <div className="space-y-1">
+          <UserCombobox
+            users={users}
+            selectedUser={selectedUser}
+            onChange={setSelectedUser}
+          />
         </div>
-      )}
-    </div>
+
+        {/* Input numérico para k */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Número de vecinos (k)</label>
+          <Input
+            type="number"
+            min={1}
+            max={users.length - 1}
+            value={k}
+            onChange={(e) => setK(Number(e.target.value))}
+            placeholder="Número de vecinos"
+          />
+        </div>
+
+        {/* Botón */}
+        <Button onClick={handleRunKNN} disabled={!selectedUser} className="w-full">
+          Ejecutar KNN
+        </Button>
+
+        {results.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium">Resultados:</h3>
+            <ScrollArea className="max-h-80 overflow-auto rounded-md border">
+              <table className="w-full text-sm text-left table-auto">
+                <thead className="bg-gray-100 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 py-2 border-b font-semibold">Vecino</th>
+                    <th className="px-4 py-2 border-b font-semibold">Distancia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((r, i) => (
+                    <tr
+                      key={i}
+                      className={i % 2 === 0 ? "bg-white dark:bg-gray-950" : "bg-gray-50 dark:bg-gray-900"}
+                    >
+                      <td className="px-4 py-2 border-b">{r.neighbor}</td>
+                      <td className="px-4 py-2 border-b text-blue-600">{r.distance.toFixed(4)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ScrollArea>
+          </div>
+        )}
+
+      </CardContent>
+    </Card>
   );
 }

@@ -178,6 +178,8 @@ async def recommender(
             return JSONResponse(status_code=400, content={"error": "Datos inválidos"})
         
         recommendations = recommend_for_column(df, user, k,distance,umbral)
+        print("Recomendations")
+        print(recommendations)
         return recommendations 
         
 

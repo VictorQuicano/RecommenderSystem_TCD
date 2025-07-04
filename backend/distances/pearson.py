@@ -1,49 +1,35 @@
-import pandas as pd
-import numpy as np
+import math
+from typing import List
 
-def similitud_pearson(serie_usuario_a: pd.Series, serie_usuario_b: pd.Series) -> float:
-    #calificadas por ambos usuarios
-    #vectores de ratings emparejados
-    calificaciones_usuario_a = serie_usuario_a.values
-    calificaciones_usuario_b = serie_usuario_b.values
-    
-    #Revisar si hay suficientes datos
-    if len(calificaciones_usuario_a) < 2:
+def similitud_pearson(lista1: List[float], lista2: List[float]) -> float:
+    """
+    Calcula la similitud de Pearson entre dos listas de valores numéricos.
+    """
+
+    # Filtrar valores donde ambos no sean None o NaN
+    v1_filtrados = []
+    v2_filtrados = []
+
+    for v1, v2 in zip(lista1, lista2):
+        if v1 is not None and v2 is not None:
+            if isinstance(v1, float) and math.isnan(v1): continue
+            if isinstance(v2, float) and math.isnan(v2): continue
+            v1_filtrados.append(v1)
+            v2_filtrados.append(v2)
+
+    if len(v1_filtrados) < 2:
+        return 0.0
+
+    # Calcular medias
+    media1 = sum(v1_filtrados) / len(v1_filtrados)
+    media2 = sum(v2_filtrados) / len(v2_filtrados)
+
+    # Numerador y denominador
+    numerador = sum((a - media1) * (b - media2) for a, b in zip(v1_filtrados, v2_filtrados))
+    denom1 = math.sqrt(sum((a - media1) ** 2 for a in v1_filtrados))
+    denom2 = math.sqrt(sum((b - media2) ** 2 for b in v2_filtrados))
+
+    if denom1 == 0 or denom2 == 0:
         return 0.0
     
-    #Medias de cada usuario
-    media_usuario_a = np.mean(calificaciones_usuario_a)
-    media_usuario_b = np.mean(calificaciones_usuario_b)
-    
-    #Numerador: covarianza empírica
-    numerador_covarianza = np.sum(
-        (calificaciones_usuario_a - media_usuario_a) *
-        (calificaciones_usuario_b - media_usuario_b)
-    )
-    
-    #Denominador: producto de desviaciones estándar
-    desviacion_usuario_a = np.sqrt(np.sum((calificaciones_usuario_a - media_usuario_a) ** 2))
-    desviacion_usuario_b = np.sqrt(np.sum((calificaciones_usuario_b - media_usuario_b) ** 2))
-    producto_desviaciones = desviacion_usuario_a * desviacion_usuario_b
-    
-    if producto_desviaciones == 0:
-        return 0.0
-    
-    #Coeficiente de Pearson
-    return numerador_covarianza / producto_desviaciones
-
-
-if __name__ == "__main__":
-    ruta_csv = 'Pelis_short.csv'
-    df_peliculas = pd.read_csv(ruta_csv, index_col=0)
-    
-    usuario_a = 'Patrick C'
-    usuario_b = 'Heather'
-    coeficiente = similitud_pearson(df_peliculas[usuario_a], df_peliculas[usuario_b])
-    print(f"Coeficiente de Pearson entre {usuario_a} y {usuario_b}: {coeficiente:.3f}")
-    
-    
-    # Convertir coeficiente en distancia:
-    distancia_basada_en_pearson = 1 - coeficiente
-    print(f"Distancia basada en Pearson entre {usuario_a} y {usuario_b}: {distancia_basada_en_pearson:.3f}")
-
+    return numerador / (denom1 * denom2)
