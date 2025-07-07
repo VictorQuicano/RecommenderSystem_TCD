@@ -40,7 +40,6 @@ class RecomendadorKNN:
         # 1. Obtener vecinos más cercanos
         df_vecinos = self.knn.get_knn(df_ratings, usuario_objetivo, k)
         vecinos = df_vecinos.index.tolist()
-
         # 2. & 3. Explorar cada vecino y sus películas favoritas
         recomendaciones = []
         serie_objetivo = df_ratings[usuario_objetivo]
