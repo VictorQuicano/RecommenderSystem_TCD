@@ -10,9 +10,9 @@ interface Neighbor {
 interface MovieRecommendation {
   movie_id: number;
   title: string;
+  genres: string;
   bayesian_rating: number;
   neighbors: Neighbor[];
-  genres?: string[];
 }
 
 export function MovieLensRecommender() {
@@ -71,6 +71,54 @@ export function MovieLensRecommender() {
         (value === '' ? 0 : parseInt(value) || 0) : 
         value
     }));
+  };
+
+  // Función para obtener el color del badge según el género
+  const getGenreColor = (genre: string): string => {
+    const colors: Record<string, string> = {
+      'Action': 'bg-red-100 text-red-800',
+      'Adventure': 'bg-orange-100 text-orange-800',
+      'Animation': 'bg-pink-100 text-pink-800',
+      'Children': 'bg-blue-100 text-blue-800',
+      'Comedy': 'bg-yellow-100 text-yellow-800',
+      'Crime': 'bg-gray-100 text-gray-800',
+      'Documentary': 'bg-green-100 text-green-800',
+      'Drama': 'bg-purple-100 text-purple-800',
+      'Fantasy': 'bg-indigo-100 text-indigo-800',
+      'Horror': 'bg-red-200 text-red-900',
+      'Musical': 'bg-pink-200 text-pink-900',
+      'Mystery': 'bg-gray-200 text-gray-900',
+      'Romance': 'bg-rose-100 text-rose-800',
+      'Sci-Fi': 'bg-cyan-100 text-cyan-800',
+      'Thriller': 'bg-slate-100 text-slate-800',
+      'War': 'bg-amber-100 text-amber-800',
+      'Western': 'bg-orange-200 text-orange-900'
+    };
+    return colors[genre] || 'bg-purple-100 text-purple-800';
+  };
+
+  // Función para obtener el icono del género
+  const getGenreIcon = (genre: string): string => {
+    const icons: Record<string, string> = {
+      'Action': '💥',
+      'Adventure': '🗺️',
+      'Animation': '🎨',
+      'Children': '👶',
+      'Comedy': '😂',
+      'Crime': '🔫',
+      'Documentary': '📽️',
+      'Drama': '🎭',
+      'Fantasy': '🧙',
+      'Horror': '👻',
+      'Musical': '🎵',
+      'Mystery': '🔍',
+      'Romance': '💕',
+      'Sci-Fi': '🚀',
+      'Thriller': '😰',
+      'War': '⚔️',
+      'Western': '🤠'
+    };
+    return icons[genre] || '🎬';
   };
 
   const commonGenres = [
@@ -218,10 +266,23 @@ export function MovieLensRecommender() {
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900 text-lg">{movie.title}</h4>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-500 mb-2">
                       ID: {movie.movie_id}
-                      {movie.genres && <span className="ml-2">Géneros: {movie.genres}</span>}
                     </div>
+                    {/* Mostrar géneros como badges */}
+                    {movie.genres && (
+                      <div className="flex flex-wrap gap-1">
+                        {movie.genres.split('|').map((genre, genreIndex) => (
+                          <span 
+                            key={genreIndex}
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getGenreColor(genre.trim())}`}
+                          >
+                            <span className="mr-1">{getGenreIcon(genre.trim())}</span>
+                            {genre.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <span className="text-green-600 font-bold text-lg">

@@ -322,6 +322,7 @@ class MovieRecommendationSystem:
                 recommendations.append({
                     'movie_id': int(movie_id),
                     'title': row["title"],
+                    'genres': row["genres"],
                     'bayesian_rating': float(bayesian_rating) if not np.isnan(bayesian_rating) else None,
                     'neighbors': data['neighbors']
                 })
