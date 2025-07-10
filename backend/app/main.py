@@ -30,6 +30,8 @@ app.include_router(matrix.router)
 app.include_router(compare.router)
 app.include_router(knn.router)
 app.include_router(recommender.router)
+app.include_router(movie_lens.router)
+
 
 @app.get("/")
 async def root():

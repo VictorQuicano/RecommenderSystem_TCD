@@ -259,16 +259,28 @@ class MovieRecommendationSystem:
         """
         Recomienda películas basándose en usuarios similares usando la métrica especificada.
         
-        Args:
-            user_id (int): ID del usuario
-            metric (str): Métrica a usar para encontrar vecinos
-            top_k (int): Número de vecinos a considerar
-            top_n (int): Número de recomendaciones a retornar
-            
         Returns:
-            list: Lista de tuplas (movie_id, title, bayesian_rating)
+            dict: {
+                'time_ms': tiempo de ejecución en milisegundos,
+                'recommendations': [
+                    {
+                        'movie_id': int,
+                        'title': str,
+                        'bayesian_rating': float,
+                        'neighbors': [
+                            {
+                                'user_id': int,
+                                'rating': float,
+                                'distance': float
+                            }
+                        ]
+                    }
+                ]
+            }
         """
-        # Obtener vecinos
+        start_time = time.time()
+        
+        # Obtener vecinos con distancias
         distancias, vecinos = self.obtener_vecinos(user_id, metric, top_k)
         vecinos = [v for v in vecinos if v != user_id]
         
@@ -276,93 +288,171 @@ class MovieRecommendationSystem:
         user_ratings = self.ratings_csr[user_id].toarray().flatten()
         peliculas_vistas = set(np.where(user_ratings > 0)[0])
         
-        # Sumar ratings de vecinos por película
-        scores = {}
-        for vecino_id in vecinos:
+        # Estructura para almacenar ratings por película y vecinos
+        movie_data = {}
+        
+        for vecino_id, distancia in zip(vecinos, distancias):
             vecino_ratings = self.ratings_csr[vecino_id].toarray().flatten()
+            
             for idx, rating in enumerate(vecino_ratings):
                 if rating > 0 and idx not in peliculas_vistas:
-                    scores[idx] = scores.get(idx, []) + [rating]
+                    if idx not in movie_data:
+                        movie_data[idx] = {
+                            'ratings': [],
+                            'neighbors': []
+                        }
+                    
+                    movie_data[idx]['ratings'].append(rating)
+                    movie_data[idx]['neighbors'].append({
+                        'user_id': int(vecino_id),
+                        'rating': float(rating),
+                        'distance': float(distancia)
+                    })
         
-        # Obtener promedio de cada película recomendada
-        scores_avg = [(idx, np.mean(ratings)) for idx, ratings in scores.items()]
-        
-        # Ordenar según bayesian_rating
-        def get_bayesian(idx):
+        # Procesar recomendaciones
+        recommendations = []
+        for idx, data in movie_data.items():
             movie_id = self.reverse_movie_mapper[idx]
             row = self.df_movies[self.df_movies["movieId"] == movie_id]
-            return row["bayesian_rating"].values[0] if not row.empty and "bayesian_rating" in row.columns else 0
-        
-        scores_avg.sort(key=lambda x: get_bayesian(x[0]), reverse=True)
-        
-        # Traducir a títulos
-        recomendaciones = []
-        for idx, _ in scores_avg[:top_n]:
-            movie_id = self.reverse_movie_mapper[idx]
-            row = self.df_movies[self.df_movies["movieId"] == movie_id]
+            
             if not row.empty:
                 row = row.iloc[0]
                 bayesian_rating = row.get("bayesian_rating", np.nan)
-                recomendaciones.append((movie_id, row["title"], bayesian_rating))
+                
+                recommendations.append({
+                    'movie_id': int(movie_id),
+                    'title': row["title"],
+                    'bayesian_rating': float(bayesian_rating) if not np.isnan(bayesian_rating) else None,
+                    'neighbors': data['neighbors']
+                })
         
-        return recomendaciones
-    
+        # Ordenar por bayesian_rating
+        recommendations.sort(key=lambda x: x['bayesian_rating'] if x['bayesian_rating'] is not None else 0, reverse=True)
+        
+        return {
+            'time_ms': round((time.time() - start_time) * 1000, 2),
+            'recommendations': recommendations[:top_n]
+        }
+
     def recomendar_por_genero(self, user_id, genero_objetivo, metric='cosine', top_k=5, top_n=10):
         """
         Recomienda películas de un género específico basándose en usuarios similares.
         
-        Args:
-            user_id (int): ID del usuario
-            genero_objetivo (str): Género objetivo (ej: 'Action', 'Comedy')
-            metric (str): Métrica a usar para encontrar vecinos
-            top_k (int): Número de vecinos a considerar
-            top_n (int): Número de recomendaciones a retornar
-            
         Returns:
-            list: Lista de tuplas (movie_id, title, genres, bayesian_rating)
+            dict: {
+                'time_ms': tiempo de ejecución en milisegundos,
+                'recommendations': [
+                    {
+                        'movie_id': int,
+                        'title': str,
+                        'genres': str,
+                        'bayesian_rating': float,
+                        'neighbors': [
+                            {
+                                'user_id': int,
+                                'rating': float,
+                                'distance': float
+                            }
+                        ]
+                    }
+                ]
+            }
         """
-        # Obtener vecinos
+        start_time = time.time()
+        
+        # Obtener vecinos con distancias
         distancias, vecinos = self.obtener_vecinos(user_id, metric, top_k)
         vecinos = [v for v in vecinos if v != user_id]
         
-        # Películas vistas por el usuario
+        # Obtener películas vistas por el usuario
         user_ratings = self.ratings_csr[user_id].toarray().flatten()
         peliculas_vistas = set(np.where(user_ratings > 0)[0])
         
-        # Obtener películas candidatas de vecinos que no haya visto
-        scores = {}
-        for vecino_id in vecinos:
+        # Estructura para almacenar datos por película
+        movie_data = {}
+        
+        for vecino_id, distancia in zip(vecinos, distancias):
             vecino_ratings = self.ratings_csr[vecino_id].toarray().flatten()
+            
             for idx, rating in enumerate(vecino_ratings):
                 if rating > 0 and idx not in peliculas_vistas:
                     movie_id = self.reverse_movie_mapper[idx]
                     row = self.df_movies[self.df_movies["movieId"] == movie_id]
+                    
                     if not row.empty and genero_objetivo in row["genres"].values[0].split('|'):
-                        scores[idx] = scores.get(idx, []) + [rating]
+                        if idx not in movie_data:
+                            movie_data[idx] = {
+                                'ratings': [],
+                                'neighbors': []
+                            }
+                        
+                        movie_data[idx]['ratings'].append(rating)
+                        movie_data[idx]['neighbors'].append({
+                            'user_id': int(vecino_id),
+                            'rating': float(rating),
+                            'distance': float(distancia)
+                        })
         
-        if not scores:
-            return []
-        
-        # Promedio por película
-        scores_avg = [(idx, np.mean(ratings)) for idx, ratings in scores.items()]
-        
-        # Ordenar por bayesian_rating
-        def get_bayesian(idx):
+        # Procesar recomendaciones
+        recommendations = []
+        for idx, data in movie_data.items():
             movie_id = self.reverse_movie_mapper[idx]
             row = self.df_movies[self.df_movies["movieId"] == movie_id]
-            return row["bayesian_rating"].values[0] if not row.empty and "bayesian_rating" in row.columns else 0
-        
-        scores_avg.sort(key=lambda x: get_bayesian(x[0]), reverse=True)
-        
-        # Retornar recomendaciones
-        recomendaciones = []
-        for idx, _ in scores_avg[:top_n]:
-            movie_id = self.reverse_movie_mapper[idx]
-            row = self.df_movies[self.df_movies["movieId"] == movie_id]
+            
             if not row.empty:
                 row = row.iloc[0]
                 bayesian_rating = row.get("bayesian_rating", np.nan)
-                recomendaciones.append((movie_id, row["title"], row["genres"], bayesian_rating))
+                
+                recommendations.append({
+                    'movie_id': int(movie_id),
+                    'title': row["title"],
+                    'genres': row["genres"],
+                    'bayesian_rating': float(bayesian_rating) if not np.isnan(bayesian_rating) else None,
+                    'neighbors': data['neighbors']
+                })
         
-        return recomendaciones
-
+        # Ordenar por bayesian_rating
+        recommendations.sort(key=lambda x: x['bayesian_rating'] if x['bayesian_rating'] is not None else 0, reverse=True)
+        
+        return {
+            'time_ms': round((time.time() - start_time) * 1000, 2),
+            'recommendations': recommendations[:top_n]
+        }
+    
+    def buscar_peliculas(self, nombre: str = None, genero: str = None, top_n: int = 10):
+        """
+        Busca películas por nombre y/o género.
+        
+        Args:
+            nombre (str): Parte del título a buscar (case insensitive)
+            genero (str): Género a filtrar (ej: 'Action')
+            top_n (int): Máximo número de resultados a retornar
+            
+        Returns:
+            list: Lista de diccionarios con información de películas
+        """
+        results = self.df_movies.copy()
+        
+        # Filtrar por género si se especificó
+        if genero:
+            results = results[results['genres'].str.contains(genero, case=False, na=False)]
+        
+        # Filtrar por nombre si se especificó
+        if nombre:
+            results = results[results['title'].str.contains(nombre, case=False, na=False)]
+        
+        # Ordenar por bayesian_rating (si existe)
+        if 'bayesian_rating' in results.columns:
+            results = results.sort_values('bayesian_rating', ascending=False)
+        
+        # Formatear resultados
+        peliculas = []
+        for _, row in results.head(top_n).iterrows():
+            peliculas.append({
+                'movie_id': int(row['movieId']),
+                'title': row['title'],
+                'genres': row['genres'],
+                'bayesian_rating': float(row['bayesian_rating']) if 'bayesian_rating' in row else None
+            })
+        
+        return peliculas
