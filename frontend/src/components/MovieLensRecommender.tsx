@@ -1,45 +1,19 @@
 import { useState } from "react";
 import { apiService } from "../services/api";
 
+interface Neighbor {
+  user_id: number;
+  rating: number;
+  distance: number;
+}
+
 interface MovieRecommendation {
   movie_id: number;
   title: string;
-  rating_bayes: number;
+  bayesian_rating: number;
+  neighbors: Neighbor[];
   genres?: string[];
 }
-
-// Función auxiliar para convertir la respuesta del backend
-const convertBackendResponse = (backendData: any[]): MovieRecommendation[] => {
-  if (!Array.isArray(backendData)) {
-    return [];
-  }
-  
-  return backendData.map(item => {
-    if (Array.isArray(item)) {
-      // Formato: [movie_id, title, rating_bayes] o [movie_id, title, genres, rating_bayes]
-      return {
-        movie_id: item[0] || 0,
-        title: item[1] || 'Título desconocido',
-        rating_bayes: item.length > 3 ? (item[3] || 0) : (item[2] || 0),
-        genres: item.length > 3 ? item[2] : undefined
-      };
-    } else if (typeof item === 'object' && item !== null) {
-      // Formato objeto: {movie_id, title, rating_bayes, etc.}
-      return {
-        movie_id: item.movie_id || 0,
-        title: item.title || 'Título desconocido',
-        rating_bayes: item.rating_bayes || item.bayesian_rating || 0,
-        genres: item.genres
-      };
-    }
-    
-    return {
-      movie_id: 0,
-      title: 'Título desconocido',
-      rating_bayes: 0
-    };
-  });
-};
 
 export function MovieLensRecommender() {
   const [formData, setFormData] = useState({
@@ -53,6 +27,7 @@ export function MovieLensRecommender() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isGenreRecommendation, setIsGenreRecommendation] = useState(false);
+  const [responseTime, setResponseTime] = useState<number | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,11 +53,9 @@ export function MovieLensRecommender() {
         });
       }
       
-      // Extraer las recomendaciones del objeto de respuesta
-      const recommendationsArray = data.recommendations || data;
-      const convertedData = convertBackendResponse(recommendationsArray);
-      
-      setRecommendations(convertedData);
+      // Extract recommendations and time from the backend response
+      setRecommendations(data.recommendations || []);
+      setResponseTime(data.time_ms || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al obtener recomendaciones');
     } finally {
@@ -226,28 +199,55 @@ export function MovieLensRecommender() {
 
       {recommendations.length > 0 && (
         <div className="bg-green-50 border border-green-200 rounded-md p-4">
-          <h3 className="text-lg font-semibold text-green-900 mb-3">
-            🎬 Recomendaciones para Usuario {formData.user_id}
-            {isGenreRecommendation && formData.genero_objetivo && (
-              <span className="text-sm font-normal"> (Género: {formData.genero_objetivo})</span>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-semibold text-green-900">
+              🎬 Recomendaciones para Usuario {formData.user_id}
+              {isGenreRecommendation && formData.genero_objetivo && (
+                <span className="text-sm font-normal"> (Género: {formData.genero_objetivo})</span>
+              )}
+            </h3>
+            {responseTime && (
+              <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded">
+                ⏱️ {responseTime.toFixed(2)}ms
+              </span>
             )}
-          </h3>
-          <div className="space-y-2">
+          </div>
+          <div className="space-y-4">
             {recommendations.map((movie) => (
-              <div key={movie.movie_id} className="flex justify-between items-center bg-white p-3 rounded shadow-sm">
-                <div className="flex-1">
-                  <span className="font-medium text-gray-900">{movie.title}</span>
-                  <div className="text-sm text-gray-500">
-                    ID: {movie.movie_id}
-                    {movie.genres && <span className="ml-2">Géneros: {movie.genres}</span>}
+              <div key={movie.movie_id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900 text-lg">{movie.title}</h4>
+                    <div className="text-sm text-gray-500">
+                      ID: {movie.movie_id}
+                      {movie.genres && <span className="ml-2">Géneros: {movie.genres}</span>}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-green-600 font-bold text-lg">
+                      {movie.bayesian_rating ? movie.bayesian_rating.toFixed(2) : 'N/A'}
+                    </span>
+                    <div className="text-sm text-gray-500">Rating Bayesiano</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-green-600 font-bold">
-                    {movie.rating_bayes ? movie.rating_bayes.toFixed(2) : 'N/A'}
-                  </span>
-                  <div className="text-sm text-gray-500">Rating Bayesiano</div>
-                </div>
+                
+                {/* Mostrar información de los vecinos */}
+                {movie.neighbors && movie.neighbors.length > 0 && (
+                  <div className="border-t border-gray-100 pt-3">
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">
+                      👥 Vecinos que recomiendan esta película:
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                      {movie.neighbors.map((neighbor, index) => (
+                        <div key={index} className="bg-blue-50 border border-blue-200 rounded p-2 text-xs">
+                          <div className="font-medium text-blue-900">Usuario {neighbor.user_id}</div>
+                          <div className="text-blue-700">Rating: {neighbor.rating.toFixed(1)}</div>
+                          <div className="text-blue-600">Distancia: {neighbor.distance.toFixed(3)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

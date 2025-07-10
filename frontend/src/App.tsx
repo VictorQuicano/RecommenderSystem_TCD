@@ -3,6 +3,7 @@ import { SystemInfo } from "./components/SystemInfo";
 import { KNNRecommender } from "./components/KNNRecommender";
 import { KNNNeighbors } from "./components/KNNNeighbors";
 import { MovieLensRecommender } from "./components/MovieLensRecommender";
+import { MovieLensNeighbors } from "./components/MovieLensNeighbors";
 import { MovieSearch } from "./components/MovieSearch";
 import { NewUserForm } from "./components/NewUserForm";
 
@@ -14,6 +15,7 @@ function App() {
     { id: "knn-recommender", label: "🤖 Recomendador KNN", component: KNNRecommender },
     { id: "knn-neighbors", label: "👥 Vecinos KNN", component: KNNNeighbors },
     { id: "movielens-recommender", label: "🎬 MovieLens Recomendador", component: MovieLensRecommender },
+    { id: "movielens-neighbors", label: "👥 MovieLens Vecinos", component: MovieLensNeighbors },
     { id: "movie-search", label: "🔍 Buscar Películas", component: MovieSearch },
     { id: "new-user", label: "➕ Nuevo Usuario", component: NewUserForm },
   ];
