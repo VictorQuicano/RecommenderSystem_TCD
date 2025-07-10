@@ -12,7 +12,6 @@ import { fetchDistance } from "@/services/fetch_distance";
 export function UserSelectorPair() {
   const users = useGlobalStore((state) => state.users);
   const distanceType = useGlobalStore((state) => state.distance);
-  const datasetName = useGlobalStore((state) => state.dataset);
 
   const [user1, setUser1] = useState<string>("");
   const [user2, setUser2] = useState<string>("");
