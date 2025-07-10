@@ -1,8 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.endpoints import matrix, compare, knn, recommender
+from app.api.endpoints import matrix, compare, knn, recommender, movie_lens
+from app.modules.movies import initialize_system
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    data_path = BASE_DIR / "data/processed"
+    initialize_system(data_path)
+
+    yield 
+
+app = FastAPI(lifespan=lifespan)
 
 # CORS
 app.add_middleware(

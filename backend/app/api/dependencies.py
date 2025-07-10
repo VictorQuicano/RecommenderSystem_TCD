@@ -2,6 +2,10 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 from fastapi import Depends
+from pathlib import Path
+from fastapi import Depends
+from app.modules.movies import get_recommendation_system
+
 
 # Obtener la ruta base del proyecto
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -25,3 +29,6 @@ def get_dataframe(dataset: str):
     if df is None:
         raise ValueError("Dataset no encontrado")
     return df
+
+def get_recommender():
+    return get_recommendation_system()

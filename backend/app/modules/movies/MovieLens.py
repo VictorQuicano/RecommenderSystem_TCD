@@ -1,10 +1,11 @@
 import pickle
 import time
+import os
+import sys
 import numpy as np
 import pandas as pd
 from scipy.sparse import load_npz, vstack, csr_matrix
 from sklearn.neighbors import NearestNeighbors
-
 
 class MovieRecommendationSystem:
     """
@@ -64,13 +65,39 @@ class MovieRecommendationSystem:
             self.models[metric] = model
             self.training_times[metric] = training_time
     
+    def _get_object_size_mb(self, obj):
+        """Calcula el tamaño en MB de un objeto en memoria."""
+        return sys.getsizeof(obj) / (1024 * 1024)
+    
+    def _get_file_size_mb(self, filepath):
+        """Calcula el tamaño en MB de un archivo en disco."""
+        try:
+            return os.path.getsize(filepath) / (1024 * 1024)
+        except FileNotFoundError:
+            return 0
+    
+    def _get_deep_size_mb(self, obj):
+        """Calcula el tamaño aproximado en MB incluyendo objetos anidados."""
+        size = sys.getsizeof(obj)
+        
+        if isinstance(obj, dict):
+            size += sum(sys.getsizeof(k) + sys.getsizeof(v) for k, v in obj.items())
+        elif isinstance(obj, (list, tuple)):
+            size += sum(sys.getsizeof(item) for item in obj)
+        elif hasattr(obj, '__dict__'):
+            size += sum(sys.getsizeof(k) + sys.getsizeof(v) for k, v in obj.__dict__.items())
+        
+        return size / (1024 * 1024)
+    
     def info(self):
         """
-        Retorna información sobre el sistema: métricas, tiempos de entrenamiento y tamaños de datos.
+        Retorna información completa sobre el sistema: métricas, tiempos de entrenamiento,
+        tamaños de datos en memoria y en disco.
         
         Returns:
-            dict: Información del sistema
+            dict: Información detallada del sistema
         """
+        # Información básica
         info_dict = {
             'metrics': self.metrics,
             'training_times': self.training_times.copy(),
@@ -88,6 +115,59 @@ class MovieRecommendationSystem:
                 } for metric, model in self.models.items()
             }
         }
+        
+        # Información de memoria RAM (en MB)
+        memory_info = {
+            'ratings_csr_mb': self._get_object_size_mb(self.ratings_csr),
+            'user_mapper_mb': self._get_deep_size_mb(self.user_mapper),
+            'movie_mapper_mb': self._get_deep_size_mb(self.movie_mapper),
+            'reverse_movie_mapper_mb': self._get_deep_size_mb(self.reverse_movie_mapper),
+            'df_movies_mb': self.df_movies.memory_usage(deep=True).sum() / (1024 * 1024),
+            'models_mb': {
+                metric: self._get_deep_size_mb(model) for metric, model in self.models.items()
+            }
+        }
+        
+        # Calcular total de RAM de modelos
+        total_models_mb = sum(memory_info['models_mb'].values())
+        memory_info['total_models_mb'] = total_models_mb
+        
+        # Calcular total de RAM del sistema
+        total_system_mb = (
+            memory_info['ratings_csr_mb'] + 
+            memory_info['user_mapper_mb'] + 
+            memory_info['movie_mapper_mb'] + 
+            memory_info['reverse_movie_mapper_mb'] + 
+            memory_info['df_movies_mb'] + 
+            total_models_mb
+        )
+        memory_info['total_system_mb'] = total_system_mb
+        
+        # Información de archivos en disco (en MB)
+        disk_info = {
+            'ratings_csr_npz_mb': self._get_file_size_mb(f"{self.path}/ratings_csr.npz"),
+            'mappers_pkl_mb': self._get_file_size_mb(f"{self.path}/mappers.pkl"),
+            'movies_bayesian_csv_mb': self._get_file_size_mb(f"{self.path}/movies_bayesian.csv")
+        }
+        
+        # Calcular total de archivos en disco
+        total_disk_mb = sum(disk_info.values())
+        disk_info['total_disk_mb'] = total_disk_mb
+        
+        # Estadísticas de eficiencia
+        efficiency_info = {
+            'memory_to_disk_ratio': total_system_mb / total_disk_mb if total_disk_mb > 0 else 0,
+            'ratings_compression_ratio': memory_info['ratings_csr_mb'] / disk_info['ratings_csr_npz_mb'] if disk_info['ratings_csr_npz_mb'] > 0 else 0,
+            'models_overhead_ratio': total_models_mb / memory_info['ratings_csr_mb'] if memory_info['ratings_csr_mb'] > 0 else 0
+        }
+        
+        # Agregar toda la información al diccionario principal
+        info_dict.update({
+            'memory_usage_mb': memory_info,
+            'disk_usage_mb': disk_info,
+            'efficiency_metrics': efficiency_info
+        })
+        
         return info_dict
     
     def obtener_vecinos(self, user_id, metric='cosine', k=5):
